@@ -139,6 +139,7 @@ func (cb *CachingBucket) Iter(ctx context.Context, dir string, f func(string) er
 		list, err := cfg.Codec.Decode(data[key])
 		if err == nil {
 			cb.operationHits.WithLabelValues(objstore.OpIter, cfgName).Inc()
+			level.Info(cb.logger).Log("msg", "operationHits Inc")
 			for _, n := range list {
 				if err := f(n); err != nil {
 					return err
@@ -186,6 +187,8 @@ func (cb *CachingBucket) Exists(ctx context.Context, name string) (bool, error) 
 		exists, err := strconv.ParseBool(string(ex))
 		if err == nil {
 			cb.operationHits.WithLabelValues(objstore.OpExists, cfgName).Inc()
+			level.Info(cb.logger).Log("msg", "operationHits Inc")
+			level.Info(cb.logger).Log("msg", "operationHits Inc")
 			return exists, nil
 		}
 		level.Warn(cb.logger).Log("msg", "unexpected cached 'exists' value", "key", key, "val", string(ex))
@@ -229,6 +232,7 @@ func (cb *CachingBucket) Get(ctx context.Context, name string) (io.ReadCloser, e
 	hits := cfg.Cache.Fetch(ctx, []string{contentKey, existsKey})
 	if hits[contentKey] != nil {
 		cb.operationHits.WithLabelValues(objstore.OpGet, cfgName).Inc()
+		level.Info(cb.logger).Log("msg", "operationHits Inc")
 		return objstore.NopCloserWithSize(bytes.NewBuffer(hits[contentKey])), nil
 	}
 
@@ -236,6 +240,7 @@ func (cb *CachingBucket) Get(ctx context.Context, name string) (io.ReadCloser, e
 	if ex := hits[existsKey]; ex != nil {
 		if exists, err := strconv.ParseBool(string(ex)); err == nil && !exists {
 			cb.operationHits.WithLabelValues(objstore.OpGet, cfgName).Inc()
+			level.Info(cb.logger).Log("msg", "operationHits Inc")
 			return nil, errObjNotFound
 		}
 	}
@@ -302,6 +307,7 @@ func (cb *CachingBucket) cachedAttributes(ctx context.Context, name, cfgName str
 		err := json.Unmarshal(raw, &attrs)
 		if err == nil {
 			cb.operationHits.WithLabelValues(objstore.OpAttributes, cfgName).Inc()
+			level.Info(cb.logger).Log("msg", "operationHits Inc")
 			return attrs, nil
 		}
 
@@ -377,6 +383,7 @@ func (cb *CachingBucket) cachedGetRange(ctx context.Context, name string, offset
 	}
 	cb.fetchedGetRangeBytes.WithLabelValues(originCache, cfgName).Add(float64(totalCachedBytes))
 	cb.operationHits.WithLabelValues(objstore.OpGetRange, cfgName).Add(float64(len(hits)) / float64(len(keys)))
+	level.Info(cb.logger).Log("msg", "operationHits Inc")
 
 	if len(hits) < len(keys) {
 		if hits == nil {
